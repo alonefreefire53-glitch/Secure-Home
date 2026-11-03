@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% set title = "Authorized Users" %}
+{% set header_title = "Authorized users" %}
+
+{% block content %}
+<div class="welcome-row"><div><p class="muted">Manage people permitted to access the home.</p></div><span class="count-chip"><b>{{ users|length }}</b> profiles</span></div>
+<div class="users-layout">
+  <section class="panel">
+      <div class="panel-head"><div><h3>Add authorized person</h3><p class="muted">Enter their details and continuous face capture.</p></div></div>
+      
+      <form id="userForm" class="form-grid" method="POST" action="/api/add_user">
+          <div class="field"><label>Full name *</label><input name="name" id="nameInput" required placeholder="e.g. Alex Morgan"></div>
+          <div class="field"><label>Relationship / role *</label><select name="role" required><option value="">Choose role</option><option>Home owner</option><option>Family member</option><option>Relative</option><option>Trusted visitor</option></select></div>
+          <div class="field"><label>Email / reference</label><input name="email" type="text" placeholder="name@example.com"></div>
+          
+          <div class="field">
+              <label>Face Enrollment (50 Continuous Captures) *</label>
+              <div style="background:#080e19; border:1px solid #2b3a54; border-radius:9px; padding:10px; text-align:center;">
+                  <div id="camPlaceholder" style="padding:20px; color:var(--muted); font-size:11px;">Click 'Start Camera' to initialize capture</div>
+                  <video id="enrollVideo" autoplay playsinline muted style="width:100%; max-height:220px; border-radius:6px; display:none;"></video>
+                  <canvas id="enrollCanvas" style="display:none;"></canvas>
+                  <img id="enrollPreview" style="width:100%; max-height:220px; border-radius:6px; display:none;" />
+                  <div style="margin-top:10px; display:flex; gap:10px; justify-content:center;">
+                      <button type="button" class="btn btn-outline btn-small" id="startEnrollCam">📷 Start Camera</button>
+                      <button type="button" class="btn btn-primary btn-small" id="captureEnrollCam" style="display:none;">◎ Start 30-Frame Capture</button>
+                  </div>
+                  <div id="captureProgress" style="font-size:11px; margin-top:8px; color:var(--cyan); display:none;">Capturing: 0 / 30... Please slowly move your face.</div>
+              </div>
+          </div>
+          
+          <button id="submitBtn" class="btn btn-primary full" type="submit" disabled style="opacity: 0.5;">＋ Add authorized user (Capture Face First)</button>
+          {% if request.args.get('added') %}<p class="form-error" style="color:var(--green);">User successfully added and trained.</p>{% endif %}
+      </form>
+  </section>
+  <section class="panel">
+      <div class="panel-head"><div><h3>Registered people</h3></div></div>
+      <div class="users-grid">
+          {% for u in users %}
+          <article class="user-card">
+              <div class="user-photo" style="background:#1b2b43; display:grid; place-items:center;">♙</div>
+              <h4>{{ u.name }}</h4><p class="muted">{{ u.role }}</p><small>{{ u.email }}</small>
+              <span class="pill pill-green">Authorized</span>
+              <a href="/api/delete_user/{{ u.id }}" class="btn btn-outline btn-small" style="margin-top:4px;">Remove</a>
+          </article>
+          {% else %}
+          <div class="empty-state">No authorized users yet.</div>
+          {% endfor %}
+      </div>
+  </section>
+</div>
+
+<script>
+  const v = document.getElementById('enrollVideo');
+  const c = document.getElementById('enrollCanvas');
+  const p = document.getElementById('enrollPreview');
+  const ph = document.getElementById('camPlaceholder');
+  const sBtn = document.getElementById('startEnrollCam');
+  const cBtn = document.getElementById('captureEnrollCam');
+  const progressText = document.getElementById('captureProgress');
+  const form = document.getElementById('userForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const nameInput = document.getElementById('nameInput');
+  
+  let str = null;
+  let capturing = false;
+
+  sBtn.addEventListener('click', async () => {
+      try {
+          str = await navigator.mediaDevices.getUserMedia({video: true});
+          v.srcObject = str;
+          ph.style.display = 'none';
+          p.style.display = 'none';
+          v.style.display = 'block';
+          sBtn.style.display = 'none';
+          cBtn.style.display = 'inline-flex';
+          progressText.style.display = 'none';
+      } catch(e) {
+          alert("Camera access denied or unavailable.");
+      }
+  });
+
+  cBtn.addEventListener('click', async () => {
+      if(capturing) return;
+      
+      const userName = nameInput.value.trim();
+      if(!userName) {
+          alert("Please enter the 'Full name' first. We need this to save your photos.");
+          nameInput.focus();
+          return;
+      }
+
+      capturing = true;
+      cBtn.disabled = true;
+      progressText.style.display = 'block';
+      
+      const scale = Math.min(1.0, 480 / v.videoWidth);
+      c.width = v.videoWidth * scale;
+      c.height = v.videoHeight * scale;
+      const ctx = c.getContext('2d');
+      
+      let firstFrame = null;
+      
+      for(let i=0; i<50; i++) {
+          ctx.drawImage(v, 0, 0, c.width, c.height);
+          let frameData = c.toDataURL('image/jpeg', 0.8);
+          if (i === 0) firstFrame = frameData;
+          
+          progressText.textContent = `Saving image ${i+1} / 50 to server... Keep moving your face.`;
+          
+          // Send to server ONE BY ONE to avoid Large Payload Error
+          await fetch('/api/upload_frame', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                  name: userName,
+                  frame_idx: i,
+                  photo_base64: frameData
+              })
+          });
+          
+          await new Promise(r => setTimeout(r, 120)); // Delay between captures
+      }
+      
+      p.src = firstFrame;
+      v.style.display = 'none';
+      p.style.display = 'block';
+      if(str) str.getTracks().forEach(t => t.stop());
+      
+      cBtn.style.display = 'none';
+      sBtn.style.display = 'inline-flex';
+      sBtn.textContent = '↻ Retake Sequence';
+      progressText.textContent = "✅ 50 Images Saved! Click 'Add authorized user' to train the AI.";
+      progressText.style.color = "var(--green)";
+      
+      capturing = false;
+      cBtn.disabled = false;
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = '1';
+      submitBtn.textContent = "＋ Add authorized user";
+  });
+  
+  form.addEventListener('submit', () => {
+      submitBtn.textContent = "⚙️ Extracting Encodings & Training SVM (Approx 15 sec)...";
+      submitBtn.style.opacity = '0.7';
+  });
+</script>
+<script>
+    window.addEventListener('pageshow', function(event) {
+        // Check karein ki page sach mein Back/Forward button ya cache se load hua hai ya nahi
+        let navEntries = performance.getEntriesByType("navigation");
+        let isBackForward = (event.persisted) || (navEntries.length > 0 && navEntries[0].type === 'back_forward');
+
+        // Agar user ne Back button dabaya hai, tabhi session verify karo
+        if (isBackForward) {
+            fetch('/api/check_session')
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.replace('/login');
+                    }
+                })
+                .catch(() => {
+                    window.location.replace('/login');
+                });
+        }
+    });
+</script>
+{% endblock %}

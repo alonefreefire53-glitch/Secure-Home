@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% set title = "Live Camera" %}
+{% set header_title = "Live camera monitoring" %}
+
+{% block content %}
+<div class="camera-layout">
+<section class="panel camera-panel">
+  <div class="panel-head"><div><h3>Primary camera</h3><p class="muted">Backend OpenCV / Model Feed</p></div><span id="cameraPill" class="pill pill-green">ONLINE</span></div>
+  <div class="video-frame">
+      <img id="webcam" src="/api/video_feed" style="width:100%; height:100%; object-fit:contain; background:#050a13; display:block;" />
+      <div class="camera-overlay"><span>● LIVE VIEW & RECOGNITION</span><span id="clock">--:--:--</span></div>
+  </div>
+  <div class="camera-controls">
+      <button id="startCamera" class="btn btn-primary" onclick="document.getElementById('webcam').src='/api/video_feed';">▶ Reload Feed</button>
+      <button id="stopCamera" class="btn btn-outline" onclick="document.getElementById('webcam').src='';">■ Stop Feed</button>
+  </div>
+</section>
+<aside class="panel"><h3>Monitoring status</h3><div class="status-row"><span class="muted">Camera</span><b style="color:var(--green)">Online</b></div><div class="status-row"><span class="muted">Video source</span><b>Python Backend (cv2)</b></div><div class="status-row"><span class="muted">Recognition engine</span><b style="color:var(--green)">SVM Connected</b></div><div class="status-row"><span class="muted">Visitor capture</span><b style="color:var(--cyan)">Automated</b></div><div class="prototype-warning">This feed is processed directly by the Flask server using your trained Machine Learning models. Unknown faces will automatically trigger alerts in the database.</div></aside>
+</div>
+<script>
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString();} 
+updateClock(); setInterval(updateClock,1000);</script>
+<script>
+    window.addEventListener('pageshow', function(event) {
+        // Check karein ki page sach mein Back/Forward button ya cache se load hua hai ya nahi
+        let navEntries = performance.getEntriesByType("navigation");
+        let isBackForward = (event.persisted) || (navEntries.length > 0 && navEntries[0].type === 'back_forward');
+
+        // Agar user ne Back button dabaya hai, tabhi session verify karo
+        if (isBackForward) {
+            fetch('/api/check_session')
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.replace('/login');
+                    }
+                })
+                .catch(() => {
+                    window.location.replace('/login');
+                });
+        }
+    });
+</script>
+{% endblock %}

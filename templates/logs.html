@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% set title = "Security Logs" %}
+{% set header_title = "Security history" %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head"><div><h3>Detection records</h3><p class="muted">Person name, date/time and detection result</p></div></div>
+  <div class="table-scroll"><table>
+      <thead><tr><th>PERSON</th><th>DATE & TIME</th><th>EVENT TYPE</th><th>DETAILS</th></tr></thead>
+      <tbody>
+          {% for log in logs %}
+          <tr><td>{{ log.person }}</td><td>{{ log.time }}</td><td>{{ log.type }}</td><td class="muted">{{ log.details }}</td></tr>
+          {% else %}
+          <tr><td colspan="4" class="empty-state">No records found.</td></tr>
+          {% endfor %}
+      </tbody>
+  </table></div>
+</section>
+{% endblock %}
+<script>
+    window.addEventListener('pageshow', function(event) {
+        // Check karein ki page sach mein Back/Forward button ya cache se load hua hai ya nahi
+        let navEntries = performance.getEntriesByType("navigation");
+        let isBackForward = (event.persisted) || (navEntries.length > 0 && navEntries[0].type === 'back_forward');
+
+        // Agar user ne Back button dabaya hai, tabhi session verify karo
+        if (isBackForward) {
+            fetch('/api/check_session')
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.replace('/login');
+                    }
+                })
+                .catch(() => {
+                    window.location.replace('/login');
+                });
+        }
+    });
+</script>

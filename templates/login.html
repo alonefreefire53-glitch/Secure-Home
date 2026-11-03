@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Admin Login | SecureHome</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body class="login-body">
+    <a class="brand login-brand" href="/">
+        <span class="brand-icon">⌂</span> Secure<span>Home</span>
+    </a>
+    <main class="login-shell">
+        <div class="login-visual">
+            <p class="eyebrow">RESTRICTED WORKSPACE</p>
+            <h1>Security starts<br>with visibility.</h1>
+            <p class="muted">Sign in to monitor the camera, manage authorized users, review visitor alerts and export security history.</p>
+            <div class="login-orbit">
+                <div class="mini-face"></div>
+            </div>
+        </div>
+        <div class="login-card">
+            <div class="eyebrow">ADMINISTRATOR ACCESS</div>
+            <h2>Welcome back</h2>
+            <p class="muted">Enter your admin credentials to continue.</p>
+            
+            <!-- Submits to Flask Route Natively -->
+            <form method="POST" action="/login">
+                <label for="username">Admin username</label>
+                <input id="username" name="username" autocomplete="username" required placeholder="Enter username">
+                
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="Enter password">
+                
+                <button class="btn btn-primary full" type="submit">Sign in to dashboard →</button>
+                
+                {% if error %}
+                    <p class="form-error" style="color: red; margin-top: 10px; font-size: 14px;">{{ error }}</p>
+                {% endif %}
+            </form>
+
+            <!-- 🟢 Naya Register Link Yahan Add Kiya Gaya Hai -->
+            <div style="text-align: center; margin-top: 15px; font-size: 14px;">
+                <span class="muted">Naya admin account banana hai?</span> 
+                <a href="{{ url_for('register') }}" style="color: #007bff; text-decoration: none; font-weight: 500;">Register karein</a>
+            </div>
+
+            <a class="back-link" href="/" style="display: block; margin-top: 15px;">← Back to overview</a>
+        </div>
+    </main>
+
+    <script>
+        window.addEventListener('pageshow', function(event) {
+            let navEntries = performance.getEntriesByType("navigation");
+            let isBackForward = (event.persisted) || (navEntries.length > 0 && navEntries[0].type === 'back_forward');
+
+            if (isBackForward) {
+                fetch('/api/check_session')
+                    .then(response => {
+                        if (response.status === 401) {
+                            window.location.replace('/login');
+                        }
+                    })
+                    .catch(() => {
+                        window.location.replace('/login');
+                    });
+            }
+        });
+    </script>
+</body>
+</html>

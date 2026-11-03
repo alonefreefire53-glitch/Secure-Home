@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% set title = "Unknown Visitors" %}
+{% set header_title = "Unknown visitor alerts" %}
+
+{% block content %}
+<div class="welcome-row"><div><p class="muted">Review captured images and track alert resolution.</p></div><span class="count-chip"><b>{{ alerts|length }}</b> alerts</span></div>
+<div class="alerts-grid">
+  {% for a in alerts %}
+  <article class="alert-card">
+      <div class="alert-image" style="background:#080e19; display:grid; place-items:center;">⚠ Image Captured</div>
+      <div class="alert-body">
+          <h3>Unknown visitor</h3>
+          <p class="muted">Detected: {{ a.time }}</p>
+          <span class="pill {% if a.status == 'Resolved' %}pill-green{% else %}pill-orange{% endif %}">{{ a.status }}</span>
+          <div class="alert-actions">
+              <a href="/api/resolve_alert/{{ a.id }}" class="btn btn-outline btn-small">Mark resolved</a>
+          </div>
+      </div>
+  </article>
+  {% else %}
+  <div class="empty-state">No unknown visitor alerts recorded yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}
+<script>
+    window.addEventListener('pageshow', function(event) {
+        // Check karein ki page sach mein Back/Forward button ya cache se load hua hai ya nahi
+        let navEntries = performance.getEntriesByType("navigation");
+        let isBackForward = (event.persisted) || (navEntries.length > 0 && navEntries[0].type === 'back_forward');
+
+        // Agar user ne Back button dabaya hai, tabhi session verify karo
+        if (isBackForward) {
+            fetch('/api/check_session')
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.replace('/login');
+                    }
+                })
+                .catch(() => {
+                    window.location.replace('/login');
+                });
+        }
+    });
+</script>

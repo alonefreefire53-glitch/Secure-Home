@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% set title = "Dashboard" %}
+{% set header_title = "Security overview" %}
+
+{% block content %}
+<div class="welcome-row"><div><p class="eyebrow">HOME MONITORING</p><h2>Good to see you, Admin.</h2><p class="muted">Here's the current snapshot of your security workspace.</p></div><a class="btn btn-primary" href="/camera">Open Live Camera ↗</a></div>
+<div class="stat-grid"><article class="stat-card"><div class="stat-top"><span>Total registered users</span><span class="stat-icon cyan">♙</span></div><strong>{{ user_count }}</strong><small>Authorized profiles</small></article><article class="stat-card"><div class="stat-top"><span>Total unknown visitors</span><span class="stat-icon orange">⚠</span></div><strong>{{ unknown_count }}</strong><small>Captured in backend</small></article><article class="stat-card"><div class="stat-top"><span>Camera status</span><span class="stat-icon green">◉</span></div><strong class="status-word" style="color:var(--green)">Online</strong><small>Connected to OpenCV</small></article><article class="stat-card"><div class="stat-top"><span>Security events</span><span class="stat-icon purple">◷</span></div><strong>{{ event_count }}</strong><small>Recorded in Database</small></article></div>
+<div class="dashboard-grid"><section class="panel"><div class="panel-head"><div><h3>Recent security activity</h3><p class="muted">Latest detection records</p></div><a class="text-link" href="/logs">View all →</a></div><div class="table-scroll"><table><thead><tr><th>PERSON</th><th>DATE & TIME</th><th>EVENT</th><th>STATUS</th></tr></thead><tbody>
+{% for log in recent_logs %}
+<tr><td>{{ log.person }}</td><td>{{ log.time }}</td><td>{{ log.type }}</td><td class="muted">{{ log.details }}</td></tr>
+{% else %}
+<tr><td colspan="4" class="empty-state">No security events recorded yet.</td></tr>
+{% endfor %}
+</tbody></table></div></section>
+<section class="panel quick-panel"><div class="panel-head"><div><h3>Quick actions</h3><p class="muted">Common security tasks</p></div></div><a class="quick-action" href="/camera"><span class="quick-symbol">◉</span><span><b>Start camera monitoring</b><small>View the OpenCV webcam feed</small></span><span>→</span></a><a class="quick-action" href="/users"><span class="quick-symbol">＋</span><span><b>Add authorized user</b><small>Register a person and photo</small></span><span>→</span></a><a class="quick-action" href="/alerts"><span class="quick-symbol">⚠</span><span><b>Review unknown visitors</b><small>Check images and alert status</small></span><span>→</span></a><a class="quick-action" href="/logs"><span class="quick-symbol">⇩</span><span><b>Export security logs</b><small>Filter and download CSV records</small></span><span>→</span></a></section></div>
+{% endblock %}
+<script>
+    window.addEventListener('pageshow', function(event) {
+        // Check karein ki page sach mein Back/Forward button ya cache se load hua hai ya nahi
+        let navEntries = performance.getEntriesByType("navigation");
+        let isBackForward = (event.persisted) || (navEntries.length > 0 && navEntries[0].type === 'back_forward');
+
+        // Agar user ne Back button dabaya hai, tabhi session verify karo
+        if (isBackForward) {
+            fetch('/api/check_session')
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.replace('/login');
+                    }
+                })
+                .catch(() => {
+                    window.location.replace('/login');
+                });
+        }
+    });
+</script>

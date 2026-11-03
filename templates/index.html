@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecureHome | Home Security</title><link rel="stylesheet" href="/style.css"></head>
+<body><header class="public-nav"><a class="brand" href="/">
+  <span class="brand-icon">⌂</span> Secure<span>Home</span></a><a class="btn btn-outline" href="/login">Admin Login ↗</a></header>
+<main class="landing">
+  <section class="hero">
+    <div><p class="eyebrow">SMART HOME SECURITY PLATFORM</p>
+    <h1>Know who's at your door.<br><span>Protect what matters.</span></h1>
+    <p class="lead">A face-recognition based home security concept to monitor camera activity, manage authorized people, review unknown visitor alerts, and keep a searchable security history.</p>
+    <div class="actions"><a class="btn btn-primary" href="/login">Open Admin Console →</a></div>
+    <div class="hero-meta"><span class="live-dot"></span> Home monitoring interface <span class="meta-divider">•</span> Admin controlled</div></div>
+    <div class="hero-art"><div class="radar radar-a"></div><div class="radar radar-b"></div><div class="face-outline"><span></span><i></i></div>
+    <div class="floating-tag tag-top">◉ CAMERA READY</div>
+    <div class="floating-tag tag-bottom"><b>ACCESS CONTROL</b><small>Authorized profiles</small></div></div>
+  </section>
+  <script>
+    window.addEventListener('pageshow', function(event) {
+        // Check karein ki page sach mein Back/Forward button ya cache se load hua hai ya nahi
+        let navEntries = performance.getEntriesByType("navigation");
+        let isBackForward = (event.persisted) || (navEntries.length > 0 && navEntries[0].type === 'back_forward');
+
+        // Agar user ne Back button dabaya hai, tabhi session verify karo
+        if (isBackForward) {
+            fetch('/api/check_session')
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.replace('/login');
+                    }
+                })
+                .catch(() => {
+                    window.location.replace('/login');
+                });
+        }
+    });
+</script>
+</main></body></html>
